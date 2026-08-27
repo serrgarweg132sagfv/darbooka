@@ -18,7 +18,7 @@ private val DarkColors = darkColorScheme()
 private val AppTypography = Typography()
 
 @Composable
-fun DarbukaPracticeTheme(
+fun DarbukaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.darbukapractice.app
 
 import android.content.Context
+import androidx.compose.material3.ExperimentalMaterial3Api
 import android.content.pm.ActivityInfo
 import android.media.AudioAttributes
 import android.media.SoundPool
@@ -52,6 +55,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.math.*
 
@@ -296,17 +300,17 @@ fun StatsScreen(sessions: List<SessionEntity>) {
     Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Card(Modifier.width(330.dp).fillMaxHeight(), shape = RoundedCornerShape(22.dp)) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text("گراف و آمار", fontSize = 28.sp, fontWeight = FontWeight.Bold); StatLine("کل زمان تمرین", formatDuration(total)); StatLine("تعداد جلسات", sessions.size.toString()); StatLine("روزهای فعال", days.toString()); StatLine("بیشترین BPM", maxBpm.toString()); StatLine("تمرین‌های انجام‌شده", "$practiced / 33"); Spacer(Modifier.height(8.dp)); Text("پیشرفت کلی", fontWeight = FontWeight.Bold); val progress = if (sessions.isEmpty()) 0f else (practiced / 33f * .55f + min(1f, maxBpm / 140f) * .25f + min(1f, total / 7200f) * .20f); LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, Modifier.fillMaxWidth()); Text("${round(progress * 100).toInt()}٪") } }
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            GraphCard("روند BPM جلسات", sessions.map { it.bpm.toFloat() }, "BPM")
-            GraphCard("زمان تمرین هر جلسه", sessions.map { it.durationSeconds / 60f }, "دقیقه")
+            GraphCard("روند BPM جلسات", sessions.map { it.bpm.toFloat() }, "BPM", Modifier.weight(1f))
+            GraphCard("زمان تمرین هر جلسه", sessions.map { it.durationSeconds / 60f }, "دقیقه", Modifier.weight(1f))
         }
     }
 }
 
 @Composable fun StatLine(label: String, value: String) { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Text(value, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) } } }
 
-@Composable fun GraphCard(title: String, values: List<Float>, unit: String) { Card(Modifier.fillMaxWidth().weight(1f), shape = RoundedCornerShape(22.dp)) { Column(Modifier.padding(16.dp)) { Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold); Text("$unit • بر اساس جلسات ثبت‌شده", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline); if (values.size < 2) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("برای نمایش نمودار حداقل دو جلسه ثبت کنید.") } else MiniChart(values) } } }
+@Composable fun GraphCard(title: String, values: List<Float>, unit: String, modifier: Modifier = Modifier) { Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) { Column(Modifier.padding(16.dp)) { Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold); Text("$unit • بر اساس جلسات ثبت‌شده", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline); if (values.size < 2) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("برای نمایش نمودار حداقل دو جلسه ثبت کنید.") } else MiniChart(values) } } }
 
-@Composable fun MiniChart(values: List<Float>) { Canvas(Modifier.fillMaxWidth().fillMaxHeight().padding(16.dp)) { val lo = values.minOrNull() ?: 0f; val hi = max((values.maxOrNull() ?: 1f), lo + 1f); val p = androidx.compose.ui.graphics.Path(); values.forEachIndexed { i, v -> val x = if (values.lastIndex == 0) 0f else i.toFloat() / values.lastIndex * size.width; val y = size.height - (v - lo) / (hi - lo) * size.height; if (i == 0) p.moveTo(x, y) else p.lineTo(x, y); drawCircle(MaterialTheme.colorScheme.primary, 5.dp.toPx(), Offset(x, y)) }; drawPath(p, MaterialTheme.colorScheme.primary, style = Stroke(4.dp.toPx(), cap = StrokeCap.Round)) } }
+@Composable fun MiniChart(values: List<Float>) { val primary = MaterialTheme.colorScheme.primary; Canvas(Modifier.fillMaxWidth().fillMaxHeight().padding(16.dp)) { val lo = values.minOrNull() ?: 0f; val hi = max((values.maxOrNull() ?: 1f), lo + 1f); val p = androidx.compose.ui.graphics.Path(); values.forEachIndexed { i, v -> val x = if (values.lastIndex == 0) 0f else i.toFloat() / values.lastIndex * size.width; val y = size.height - (v - lo) / (hi - lo) * size.height; if (i == 0) p.moveTo(x, y) else p.lineTo(x, y); drawCircle(primary, 5.dp.toPx(), Offset(x, y)) }; drawPath(p, primary, style = Stroke(4.dp.toPx(), cap = StrokeCap.Round)) } }
 
 @Composable fun SettingsScreen() { Column(Modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text("تنظیمات", fontSize = 30.sp, fontWeight = FontWeight.Bold); SettingCard("حالت برنامه", "رابط کاربری برای استفاده افقی گوشی و تبلت بهینه شده است."); SettingCard("حافظه", "جلسات تمرین و آمار به‌صورت محلی روی دستگاه ذخیره می‌شوند."); SettingCard("حریم خصوصی", "بدون حساب کاربری، بدون سرور و بدون ارسال داده تمرین."); SettingCard("نسخه", "1.0.0") } }
 @Composable fun SettingCard(title: String, text: String) { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) { Column(Modifier.padding(16.dp)) { Text(title, fontWeight = FontWeight.Bold); Text(text, color = MaterialTheme.colorScheme.outline) } } }
@@ -314,8 +318,10 @@ fun StatsScreen(sessions: List<SessionEntity>) {
 @Composable
 fun Knob(value: Float, min: Float, max: Float, sweep: Float, onChange: (Float) -> Unit) {
     val fraction = ((value - min) / (max - min)).coerceIn(0f, 1f); val active = sweep * fraction
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val primary = MaterialTheme.colorScheme.primary
     Box(Modifier.size(112.dp).pointerInput(min, max) { detectDragGestures { _, drag -> onChange((value + drag.x * (max - min) / 260f).coerceIn(min, max)) } }, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) { val stroke = 12.dp.toPx(); drawArc(MaterialTheme.colorScheme.surfaceVariant, 135f, sweep, false, style = Stroke(stroke, cap = StrokeCap.Round)); drawArc(MaterialTheme.colorScheme.primary, 135f, active, false, style = Stroke(stroke, cap = StrokeCap.Round)); val a = Math.toRadians((135 + active).toDouble()); val r = size.minDimension / 2f - 22.dp.toPx(); drawCircle(MaterialTheme.colorScheme.primary, 7.dp.toPx(), Offset(size.width / 2 + cos(a).toFloat() * r, size.height / 2 + sin(a).toFloat() * r)) }
+        Canvas(Modifier.fillMaxSize()) { val stroke = 12.dp.toPx(); drawArc(surfaceVariant, 135f, sweep, false, style = Stroke(stroke, cap = StrokeCap.Round)); drawArc(primary, 135f, active, false, style = Stroke(stroke, cap = StrokeCap.Round)); val a = Math.toRadians((135 + active).toDouble()); val r = size.minDimension / 2f - 22.dp.toPx(); drawCircle(primary, 7.dp.toPx(), Offset(size.width / 2 + cos(a).toFloat() * r, size.height / 2 + sin(a).toFloat() * r)) }
     }
 }
 
