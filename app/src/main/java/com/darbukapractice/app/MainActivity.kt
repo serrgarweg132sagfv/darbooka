@@ -208,14 +208,14 @@ fun ExerciseList(sessions: List<SessionEntity>, onSelect: (Int) -> Unit) {
 @Composable
 fun ExerciseScreen(id: Int, sessions: List<SessionEntity>, vm: PracticeViewModel, onBack: () -> Unit) {
     val e = Exercises.all.first { it.id == id }
-    val prefs = remember { contextForPrefs(LocalContext.current) }
+    val context = LocalContext.current
+    val prefs = remember { contextForPrefs(context) }
     var bpm by remember(id) { mutableIntStateOf(prefs.getInt("bpm_$id", e.bpmMin.coerceIn(40, 250)).coerceIn(40, 250)) }
     var volume by remember { mutableFloatStateOf(prefs.getFloat("volume", .82f)) }
     var sound by remember { mutableIntStateOf(prefs.getInt("sound", 0).coerceIn(0, 2)) }
     var running by remember { mutableStateOf(false) }
     var paused by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf<SessionEntity?>(null) }
-    val context = LocalContext.current
     val metronome = remember { MetronomeEngine(context) }
     val elapsed = vm.elapsedSeconds
     DisposableEffect(Unit) { onDispose { metronome.release() } }
